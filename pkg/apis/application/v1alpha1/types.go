@@ -46,6 +46,9 @@ import (
 // +genclient:noStatus
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:resource:path=applications,shortName=app;apps
+// +kubebuilder:printcolumn:name="Sync Status",type=string,JSONPath=`.status.sync.status`
+// +kubebuilder:printcolumn:name="Health Status",type=string,JSONPath=`.status.health.status`
+// +kubebuilder:printcolumn:name="Revision",type=string,JSONPath=`.status.sync.revision`,priority=10
 type Application struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
@@ -94,6 +97,17 @@ type EnvEntry struct {
 
 func (a *EnvEntry) IsZero() bool {
 	return a == nil || a.Name == "" && a.Value == ""
+}
+
+func NewEnvEntry(text string) (*EnvEntry, error) {
+	parts := strings.SplitN(text, "=", 2)
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("Expected env entry of the form: param=value. Received: %s", text)
+	}
+	return &EnvEntry{
+		Name:  parts[0],
+		Value: parts[1],
+	}, nil
 }
 
 type Env []*EnvEntry
@@ -146,8 +160,31 @@ type ApplicationSource struct {
 	Chart string `json:"chart,omitempty" protobuf:"bytes,12,opt,name=chart"`
 }
 
+// AllowsConcurrentProcessing returns true if given application source can be processed concurrently
+func (a *ApplicationSource) AllowsConcurrentProcessing() bool {
+	switch {
+	// Kustomize with parameters requires changing kustomization.yaml file
+	case a.Kustomize != nil:
+		return a.Kustomize.AllowsConcurrentProcessing()
+	// Kustomize with parameters requires changing params.libsonnet file
+	case a.Ksonnet != nil:
+		return a.Ksonnet.AllowsConcurrentProcessing()
+	}
+	return true
+}
+
 func (a *ApplicationSource) IsHelm() bool {
 	return a.Chart != ""
+}
+
+func (a *ApplicationSource) IsHelmOci() bool {
+	if a.Chart == "" {
+		return false
+	}
+	if _, _, ok := helm.IsHelmOci(a.Chart); ok {
+		return true
+	}
+	return false
 }
 
 func (a *ApplicationSource) IsZero() bool {
@@ -314,6 +351,15 @@ type ApplicationSourceKustomize struct {
 	CommonLabels map[string]string `json:"commonLabels,omitempty" protobuf:"bytes,4,opt,name=commonLabels"`
 	// Version contains optional Kustomize version
 	Version string `json:"version,omitempty" protobuf:"bytes,5,opt,name=version"`
+	// CommonAnnotations adds additional kustomize commonAnnotations
+	CommonAnnotations map[string]string `json:"commonAnnotations,omitempty" protobuf:"bytes,6,opt,name=commonAnnotations"`
+}
+
+func (k *ApplicationSourceKustomize) AllowsConcurrentProcessing() bool {
+	return len(k.Images) == 0 &&
+		len(k.CommonLabels) == 0 &&
+		k.NamePrefix == "" &&
+		k.NameSuffix == ""
 }
 
 func (k *ApplicationSourceKustomize) IsZero() bool {
@@ -322,7 +368,8 @@ func (k *ApplicationSourceKustomize) IsZero() bool {
 			k.NameSuffix == "" &&
 			k.Version == "" &&
 			len(k.Images) == 0 &&
-			len(k.CommonLabels) == 0
+			len(k.CommonLabels) == 0 &&
+			len(k.CommonAnnotations) == 0
 }
 
 // either updates or adds the images
@@ -380,6 +427,10 @@ type KsonnetParameter struct {
 	Value     string `json:"value" protobuf:"bytes,3,opt,name=value"`
 }
 
+func (k *ApplicationSourceKsonnet) AllowsConcurrentProcessing() bool {
+	return len(k.Parameters) == 0
+}
+
 func (k *ApplicationSourceKsonnet) IsZero() bool {
 	return k == nil || k.Environment == "" && len(k.Parameters) == 0
 }
@@ -387,6 +438,7 @@ func (k *ApplicationSourceKsonnet) IsZero() bool {
 type ApplicationSourceDirectory struct {
 	Recurse bool                     `json:"recurse,omitempty" protobuf:"bytes,1,opt,name=recurse"`
 	Jsonnet ApplicationSourceJsonnet `json:"jsonnet,omitempty" protobuf:"bytes,2,opt,name=jsonnet"`
+	Exclude string                   `json:"exclude,omitempty" protobuf:"bytes,3,opt,name=exclude"`
 }
 
 func (d *ApplicationSourceDirectory) IsZero() bool {
@@ -401,6 +453,20 @@ type ApplicationSourcePlugin struct {
 
 func (c *ApplicationSourcePlugin) IsZero() bool {
 	return c == nil || c.Name == "" && c.Env.IsZero()
+}
+
+func (c *ApplicationSourcePlugin) AddEnvEntry(e *EnvEntry) {
+	found := false
+	for i, ce := range c.Env {
+		if ce.Name == e.Name {
+			found = true
+			c.Env[i] = e
+			break
+		}
+	}
+	if !found {
+		c.Env = append(c.Env, e)
+	}
 }
 
 // ApplicationDestination contains deployment destination information
@@ -1115,6 +1181,25 @@ type AWSAuthConfig struct {
 	RoleARN string `json:"roleARN,omitempty" protobuf:"bytes,2,opt,name=roleARN"`
 }
 
+// ExecProviderConfig is config used to call an external command to perform cluster authentication
+// See: https://godoc.org/k8s.io/client-go/tools/clientcmd/api#ExecConfig
+type ExecProviderConfig struct {
+	// Command to execute
+	Command string `json:"command,omitempty" protobuf:"bytes,1,opt,name=command"`
+
+	// Arguments to pass to the command when executing it
+	Args []string `json:"args,omitempty" protobuf:"bytes,2,rep,name=args"`
+
+	// Env defines additional environment variables to expose to the process
+	Env map[string]string `json:"env,omitempty" protobuf:"bytes,3,opt,name=env"`
+
+	// Preferred input version of the ExecInfo
+	APIVersion string `json:"apiVersion,omitempty" protobuf:"bytes,4,opt,name=apiVersion"`
+
+	// This text is shown to the user when the executable doesn't seem to be present
+	InstallHint string `json:"installHint,omitempty" protobuf:"bytes,5,opt,name=installHint"`
+}
+
 // ClusterConfig is the configuration attributes. This structure is subset of the go-client
 // rest.Config with annotations added for marshalling.
 type ClusterConfig struct {
@@ -1132,6 +1217,9 @@ type ClusterConfig struct {
 
 	// AWSAuthConfig contains IAM authentication configuration
 	AWSAuthConfig *AWSAuthConfig `json:"awsAuthConfig,omitempty" protobuf:"bytes,5,opt,name=awsAuthConfig"`
+
+	// ExecProviderConfig contains configuration for an exec provider
+	ExecProviderConfig *ExecProviderConfig `json:"execProviderConfig,omitempty" protobuf:"bytes,6,opt,name=execProviderConfig"`
 }
 
 // TLSClientConfig contains settings to enable transport layer security
@@ -1276,6 +1364,8 @@ type Repository struct {
 	Name string `json:"name,omitempty" protobuf:"bytes,12,opt,name=name"`
 	// Whether credentials were inherited from a credential set
 	InheritedCreds bool `json:"inheritedCreds,omitempty" protobuf:"bytes,13,opt,name=inheritedCreds"`
+	// Whether helm-oci support should be enabled for this repo
+	EnableOCI bool `json:"enableOCI,omitempty" protobuf:"bytes,14,opt,name=enableOCI"`
 }
 
 // IsInsecure returns true if receiver has been configured to skip server verification
@@ -2333,6 +2423,17 @@ func (source *ApplicationSource) ExplicitType() (*ApplicationSourceType, error) 
 
 // Equals compares two instances of ApplicationDestination and return true if instances are equal.
 func (dest ApplicationDestination) Equals(other ApplicationDestination) bool {
+	// ignore destination cluster name and isServerInferred fields during comparison
+	// since server URL is inferred from cluster name
+	if dest.isServerInferred {
+		dest.Server = ""
+		dest.isServerInferred = false
+	}
+
+	if other.isServerInferred {
+		other.Server = ""
+		other.isServerInferred = false
+	}
 	return reflect.DeepEqual(dest, other)
 }
 
@@ -2520,6 +2621,27 @@ func (c *Cluster) RawRestConfig() *rest.Config {
 					APIVersion: "client.authentication.k8s.io/v1alpha1",
 					Command:    "aws",
 					Args:       args,
+				},
+			}
+		} else if c.Config.ExecProviderConfig != nil {
+			var env []api.ExecEnvVar
+			if c.Config.ExecProviderConfig.Env != nil {
+				for key, value := range c.Config.ExecProviderConfig.Env {
+					env = append(env, api.ExecEnvVar{
+						Name:  key,
+						Value: value,
+					})
+				}
+			}
+			config = &rest.Config{
+				Host:            c.Server,
+				TLSClientConfig: tlsClientConfig,
+				ExecProvider: &api.ExecConfig{
+					APIVersion:  c.Config.ExecProviderConfig.APIVersion,
+					Command:     c.Config.ExecProviderConfig.Command,
+					Args:        c.Config.ExecProviderConfig.Args,
+					Env:         env,
+					InstallHint: c.Config.ExecProviderConfig.InstallHint,
 				},
 			}
 		} else {

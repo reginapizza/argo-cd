@@ -429,6 +429,21 @@ func TestAppDestinationEquality(t *testing.T) {
 	assert.False(t, left.Equals(*right))
 }
 
+func TestAppDestinationEquality_InferredServerURL(t *testing.T) {
+	left := ApplicationDestination{
+		Name:      "in-cluster",
+		Namespace: "default",
+	}
+	right := ApplicationDestination{
+		Name:             "in-cluster",
+		Server:           "https://kubernetes.default.svc",
+		Namespace:        "default",
+		isServerInferred: true,
+	}
+	assert.True(t, left.Equals(right))
+	assert.True(t, right.Equals(left))
+}
+
 func TestAppProjectSpec_DestinationClusters(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -883,6 +898,7 @@ func TestApplicationSourceKustomize_IsZero(t *testing.T) {
 		{"NameSuffix", &ApplicationSourceKustomize{NameSuffix: "foo"}, false},
 		{"Images", &ApplicationSourceKustomize{Images: []KustomizeImage{""}}, false},
 		{"CommonLabels", &ApplicationSourceKustomize{CommonLabels: map[string]string{"": ""}}, false},
+		{"CommonAnnotations", &ApplicationSourceKustomize{CommonAnnotations: map[string]string{"": ""}}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2098,4 +2114,28 @@ func TestRetryStrategy_NextRetryAtCustomBackoff(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, expected.Format(time.RFC850), retryAt.Format(time.RFC850))
 	}
+}
+
+func TestSourceAllowsConcurrentProcessing_KsonnetNoParams(t *testing.T) {
+	src := ApplicationSource{Path: "."}
+
+	assert.True(t, src.AllowsConcurrentProcessing())
+}
+
+func TestSourceAllowsConcurrentProcessing_KsonnetParams(t *testing.T) {
+	src := ApplicationSource{Path: ".", Ksonnet: &ApplicationSourceKsonnet{
+		Parameters: []KsonnetParameter{{
+			Name: "test", Component: "test", Value: "1",
+		}},
+	}}
+
+	assert.False(t, src.AllowsConcurrentProcessing())
+}
+
+func TestSourceAllowsConcurrentProcessing_KustomizeParams(t *testing.T) {
+	src := ApplicationSource{Path: ".", Kustomize: &ApplicationSourceKustomize{
+		NameSuffix: "test",
+	}}
+
+	assert.False(t, src.AllowsConcurrentProcessing())
 }

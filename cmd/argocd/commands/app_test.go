@@ -78,6 +78,11 @@ func Test_setKustomizeOpt(t *testing.T) {
 		setKustomizeOpt(&src, kustomizeOpts{commonLabels: map[string]string{"foo1": "bar1", "foo2": "bar2"}})
 		assert.Equal(t, &v1alpha1.ApplicationSourceKustomize{CommonLabels: map[string]string{"foo1": "bar1", "foo2": "bar2"}}, src.Kustomize)
 	})
+	t.Run("Common annotations", func(t *testing.T) {
+		src := v1alpha1.ApplicationSource{}
+		setKustomizeOpt(&src, kustomizeOpts{commonAnnotations: map[string]string{"foo1": "bar1", "foo2": "bar2"}})
+		assert.Equal(t, &v1alpha1.ApplicationSourceKustomize{CommonAnnotations: map[string]string{"foo1": "bar1", "foo2": "bar2"}}, src.Kustomize)
+	})
 }
 
 func Test_setJsonnetOpt(t *testing.T) {
@@ -94,6 +99,18 @@ func Test_setJsonnetOpt(t *testing.T) {
 		assert.Equal(t, []v1alpha1.JsonnetVar{{Name: "foo", Value: "bar"}}, src.Directory.Jsonnet.ExtVars)
 		setJsonnetOptExtVar(&src, []string{"bar=baz"}, false)
 		assert.Equal(t, []v1alpha1.JsonnetVar{{Name: "foo", Value: "bar"}, {Name: "bar", Value: "baz"}}, src.Directory.Jsonnet.ExtVars)
+	})
+}
+
+func Test_setPluginOptEnvs(t *testing.T) {
+	t.Run("PluginEnvs", func(t *testing.T) {
+		src := v1alpha1.ApplicationSource{}
+		setPluginOptEnvs(&src, []string{"FOO=bar"})
+		assert.Equal(t, v1alpha1.EnvEntry{Name: "FOO", Value: "bar"}, *src.Plugin.Env[0])
+		setPluginOptEnvs(&src, []string{"BAR=baz"})
+		assert.Equal(t, v1alpha1.EnvEntry{Name: "BAR", Value: "baz"}, *src.Plugin.Env[1])
+		setPluginOptEnvs(&src, []string{"FOO=baz"})
+		assert.Equal(t, v1alpha1.EnvEntry{Name: "FOO", Value: "baz"}, *src.Plugin.Env[0])
 	})
 }
 

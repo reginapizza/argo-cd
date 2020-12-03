@@ -4,14 +4,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/argoproj/gitops-engine/pkg/utils/errors"
 	"github.com/argoproj/pkg/stats"
 	"github.com/go-redis/redis/v8"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
-
-	log "github.com/sirupsen/logrus"
 
 	"github.com/argoproj/argo-cd/common"
 	"github.com/argoproj/argo-cd/pkg/apis/application/v1alpha1"
@@ -21,6 +19,7 @@ import (
 	servercache "github.com/argoproj/argo-cd/server/cache"
 	"github.com/argoproj/argo-cd/util/cli"
 	"github.com/argoproj/argo-cd/util/env"
+	"github.com/argoproj/argo-cd/util/errors"
 	"github.com/argoproj/argo-cd/util/kube"
 	"github.com/argoproj/argo-cd/util/tls"
 )
@@ -64,9 +63,10 @@ func NewCommand() *cobra.Command {
 		frameOptions             string
 	)
 	var command = &cobra.Command{
-		Use:   cliName,
-		Short: "Run the argocd API server",
-		Long:  "Run the argocd API server",
+		Use:               cliName,
+		Short:             "Run the ArgoCD API server",
+		Long:              "The API server is a gRPC/REST server which exposes the API consumed by the Web UI, CLI, and CI/CD systems.  This command runs API server in the foreground.  It can be configured by following options.",
+		DisableAutoGenTag: true,
 		Run: func(c *cobra.Command, args []string) {
 			cli.SetLogFormat(logFormat)
 			cli.SetLogLevel(logLevel)

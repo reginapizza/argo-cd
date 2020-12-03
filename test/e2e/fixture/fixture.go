@@ -11,8 +11,6 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/argoproj/gitops-engine/pkg/utils/errors"
-	"github.com/argoproj/gitops-engine/pkg/utils/io"
 	"github.com/argoproj/pkg/errors"
 	jsonpatch "github.com/evanphx/json-patch"
 	"github.com/ghodss/yaml"
@@ -29,7 +27,9 @@ import (
 	sessionpkg "github.com/argoproj/argo-cd/pkg/apiclient/session"
 	"github.com/argoproj/argo-cd/pkg/apis/application/v1alpha1"
 	appclientset "github.com/argoproj/argo-cd/pkg/client/clientset/versioned"
+	. "github.com/argoproj/argo-cd/util/errors"
 	grpcutil "github.com/argoproj/argo-cd/util/grpc"
+	"github.com/argoproj/argo-cd/util/io"
 	"github.com/argoproj/argo-cd/util/rand"
 	"github.com/argoproj/argo-cd/util/settings"
 )
@@ -445,11 +445,15 @@ func Delete(path string) {
 	FailOnErr(Run(repoDirectory(), "git", "commit", "-am", "delete"))
 }
 
-func AddFile(path, contents string) {
-
+func WriteFile(path, contents string) {
 	log.WithFields(log.Fields{"path": path}).Info("adding")
 
 	CheckError(ioutil.WriteFile(filepath.Join(repoDirectory(), path), []byte(contents), 0644))
+}
+
+func AddFile(path, contents string) {
+
+	WriteFile(path, contents)
 
 	FailOnErr(Run(repoDirectory(), "git", "diff"))
 	FailOnErr(Run(repoDirectory(), "git", "add", "."))
@@ -457,9 +461,8 @@ func AddFile(path, contents string) {
 }
 
 func AddSignedFile(path, contents string) {
-	log.WithFields(log.Fields{"path": path}).Info("adding")
+	WriteFile(path, contents)
 
-	CheckError(ioutil.WriteFile(filepath.Join(repoDirectory(), path), []byte(contents), 0644))
 	prevGnuPGHome := os.Getenv("GNUPGHOME")
 	os.Setenv("GNUPGHOME", TmpDir+"/gpg")
 	FailOnErr(Run(repoDirectory(), "git", "diff"))
