@@ -33,7 +33,7 @@ require('./application-details.scss');
 
 type ActionMenuItem = MenuItem & {disabled?: boolean};
 
-export class ApplicationDetails extends React.Component<RouteComponentProps<{name: string}>, {page: number}> {
+export class ApplicationDetails extends React.Component<RouteComponentProps<{name: string}>, {page: number, numOfEvents: number}> {
     public static contextTypes = {
         apis: PropTypes.object
     };
@@ -42,7 +42,10 @@ export class ApplicationDetails extends React.Component<RouteComponentProps<{nam
 
     constructor(props: RouteComponentProps<{name: string}>) {
         super(props);
-        this.state = {page: 0};
+        this.state = {
+            page: 0,
+            numOfEvents: 0,
+        };
     }
 
     private get showOperationState() {
@@ -153,6 +156,13 @@ export class ApplicationDetails extends React.Component<RouteComponentProps<{nam
                                 resNode.root = resNode;
                                 return this.filterTreeNode(resNode, treeFilter);
                             });
+
+                            if (this.state.numOfEvents === 0) {
+                                services.applications.events(application.metadata.name).then(events => {
+                                    console.log(events);
+                                    this.setState({numOfEvents : events.length})
+                                });
+                            }
                             return (
                                 <div className='application-details'>
                                     <Page
@@ -374,7 +384,7 @@ export class ApplicationDetails extends React.Component<RouteComponentProps<{nam
                                                                 )
                                                             },
                                                             {
-                                                                title: 'EVENTS',
+                                                                title: 'EVENTS' + ` (${this.state.numOfEvents})`,
                                                                 key: 'event',
                                                                 content: <ApplicationResourceEvents applicationName={application.metadata.name} />
                                                             }
