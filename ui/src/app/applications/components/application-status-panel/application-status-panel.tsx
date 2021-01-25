@@ -1,10 +1,11 @@
 import {HelpIcon} from 'argo-ui';
 import * as React from 'react';
-import {DataLoader, InfoPopup} from '../../../shared/components';
+import {DataLoader, InfoPopup, InfoPopupContent} from '../../../shared/components';
 import {Revision} from '../../../shared/components/revision';
 import {Timestamp} from '../../../shared/components/timestamp';
 import * as models from '../../../shared/models';
 import {services} from '../../../shared/services';
+
 import * as utils from '../utils';
 import {ApplicationSyncWindowStatusIcon, ComparisonStatusIcon, getAppOperationState, HealthStatusIcon, OperationState, syncStatusMessage} from '../utils';
 import {RevisionMetadataPanel} from './revision-metadata-panel';
@@ -70,6 +71,29 @@ export const ApplicationStatusPanel = ({application, showOperation, showConditio
                         <RevisionMetadataPanel appName={application.metadata.name} type={application.spec.source.chart && 'helm'} revision={application.status.sync.revision} />
                     )}
                 </div>
+                <button
+                    className='view-application-status-full'
+                    onClick={() =>
+                        viewApplicationStatusFull(
+                            // title of info popup- "compared to"
+                            <div className="info-popup-title">
+                                {application.status.sync.status}
+                            </div>,
+                            // content of info-popup- "compared to"
+                            <div className='info-popup-content'>
+                                <div className='application-status-panel__item-name'>{syncStatusMessage(application)}</div>
+                                <div className='application-status-panel__item-name'>
+                                    {application.status && application.status.sync && application.status.sync.revision && (
+                                        <InfoPopupContent appName={application.metadata.name} type={application.spec.source.chart && 'helm'} revision={application.status.sync.revision} />
+                                    )}
+                                </div>
+                                <br />
+                                <div>It has been {daysSinceLastSynchronized} days since last sync.</div>
+                            </div>
+                        )
+                    }>
+                    Expand <i className='fas fa-angle-double-right' />
+                </button>
             </div>
             {appOperationState && (
                 <div className='application-status-panel__item columns small-4'>
@@ -105,16 +129,16 @@ export const ApplicationStatusPanel = ({application, showOperation, showConditio
                             className='view-application-status-full'
                             onClick={() =>
                                 viewApplicationStatusFull(
-                                    // title of info popup
+                                    // title of info popup- "synced to"
                                     <div className={`info-popup-title application-status-panel__item-value application-status-panel__item-value--${appOperationState.phase}`}>
                                         <a onClick={() => showOperation && showOperation()}>
-                                            {utils.getOperationStateTitle(application)}
+                                            {utils.getOperationStateTitle(application) + " - "}
                                             <div className='info-popup-title__timestamp'>
-                                                - {appOperationState.phase} <Timestamp date={appOperationState.finishedAt || appOperationState.startedAt} />
+                                                {appOperationState.phase} <Timestamp date={appOperationState.finishedAt || appOperationState.startedAt} />
                                             </div>
                                         </a>
                                     </div>,
-                                    // content of info-popup
+                                    // content of info-popup- "synced to"
                                     <div className='info-popup-content'>
                                         {appOperationState.syncResult && appOperationState.syncResult.revision && (
                                             <div className='info-popup-content__data'>
@@ -123,7 +147,7 @@ export const ApplicationStatusPanel = ({application, showOperation, showConditio
                                         )}
                                         {(appOperationState.syncResult && appOperationState.syncResult.revision && (
                                             <div className='info-popup-content__data'>
-                                                <RevisionMetadataPanel
+                                                <InfoPopupContent
                                                     appName={application.metadata.name}
                                                     type={application.spec.source.chart && 'helm'}
                                                     revision={appOperationState.syncResult.revision}
