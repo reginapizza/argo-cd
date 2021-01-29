@@ -35,12 +35,12 @@ setTimeout(function() {
   //         window.location.href = ABS_BASE_URL + "/../" + this.value;
   //       });
     
-        var container = document.createElement("div");
-        container.id = "version-selector";
-        container.className = "md-header-nav";
-        container.appendChild(select);
+        var newContainer = document.createElement("div");
+        newContainer.id = "version-selector";
+        newContainer.className = "md-header-nav";
+        newContainer.appendChild(select);
         var header = document.querySelector(".md-header-nav > .md-header-nav__title");
-  header.parentNode.insertBefore(container, header.nextSibling);
+  header.parentNode.insertBefore(newContainer, header.nextSibling);
 
   }
 
