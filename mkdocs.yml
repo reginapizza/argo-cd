@@ -11,15 +11,15 @@ theme:
   favicon: 'assets/favicon.png'
   # language: en-custom
   custom_dir: overrides
-extra:
-  version:
-    method: mike
-extra_javascript:
-- javascripts/extra.js
-- js/version-select.js
-extra_css:
-- stylesheets/extra.css
-- css/version-select.css
+# extra:
+#   version:
+#     method: mike
+# extra_javascript:
+# - javascripts/extra.js
+# - js/version-select.js
+# extra_css:
+# - stylesheets/extra.css
+# - css/version-select.css
 google_analytics:
 - 'UA-105170809-2'
 - 'auto'

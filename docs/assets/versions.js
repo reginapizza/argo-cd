@@ -66,9 +66,9 @@ setTimeout(function() {
   // versionWarningCSSLink.href = '/../stylesheets/extra.css';
   // document.getElementsByTagName('head')[0].appendChild(versionWarningCSSLink);
 
-  var versionScript = document.createElement('script');
-  versionScript.src = '../js/version-select.js';
-  document.getElementsByTagName('head')[0].appendChild(versionScript);
+  // var versionScript = document.createElement('script');
+  // versionScript.src = '../js/version-select.js';
+  // document.getElementsByTagName('head')[0].appendChild(versionScript);
 
   // var versionWarningScript = document.createElement('script');
   // versionWarningScript.src ='../javascripts/extra.js';
