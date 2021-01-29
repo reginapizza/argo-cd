@@ -875,8 +875,15 @@ func findManifests(appPath string, repoRoot string, env *v1alpha1.Env, directory
 			return nil
 		}
 
-		fileNameWithPath := filepath.Join(appPath, f.Name())
-		if glob.Match(directory.Exclude, fileNameWithPath) {
+		relPath, err := filepath.Rel(appPath, path)
+		if err != nil {
+			return err
+		}
+		if directory.Exclude != "" && glob.Match(directory.Exclude, relPath) {
+			return nil
+		}
+
+		if directory.Include != "" && !glob.Match(directory.Include, relPath) {
 			return nil
 		}
 
@@ -1180,7 +1187,7 @@ func (s *Service) GetAppDetails(ctx context.Context, q *apiclient.RepoServerAppD
 }
 
 func (s *Service) GetRevisionMetadata(ctx context.Context, q *apiclient.RepoServerRevisionMetadataRequest) (*v1alpha1.RevisionMetadata, error) {
-	if !git.IsCommitSHA(q.Revision) {
+	if !(git.IsCommitSHA(q.Revision) || git.IsTruncatedCommitSHA(q.Revision)) {
 		return nil, fmt.Errorf("revision %s must be resolved", q.Revision)
 	}
 	metadata, err := s.cache.GetRevisionMetadata(q.Repo.Repo, q.Revision)
@@ -1251,9 +1258,7 @@ func (s *Service) GetRevisionMetadata(ctx context.Context, q *apiclient.RepoServ
 		}
 	}
 
-	// discard anything after the first new line and then truncate to 64 chars
-	message := text.Trunc(strings.SplitN(m.Message, "\n", 2)[0], 64)
-	metadata = &v1alpha1.RevisionMetadata{Author: m.Author, Date: metav1.Time{Time: m.Date}, Tags: m.Tags, Message: message, SignatureInfo: signatureInfo}
+	metadata = &v1alpha1.RevisionMetadata{Author: m.Author, Date: metav1.Time{Time: m.Date}, Tags: m.Tags, Message: m.Message, SignatureInfo: signatureInfo}
 	_ = s.cache.SetRevisionMetadata(q.Repo.Repo, q.Revision, metadata)
 	return metadata, nil
 }
@@ -1295,9 +1300,12 @@ func (s *Service) newClientResolveRevision(repo *v1alpha1.Repository, revision s
 }
 
 func (s *Service) newHelmClientResolveRevision(repo *v1alpha1.Repository, revision string, chart string) (helm.Client, string, error) {
-	helmClient := s.newHelmClient(repo.Repo, repo.GetHelmCreds(), repo.EnableOCI)
+	helmClient := s.newHelmClient(repo.Repo, repo.GetHelmCreds(), repo.EnableOCI || helm.IsHelmOciChart(chart))
 	if helm.IsVersion(revision) {
 		return helmClient, revision, nil
+	}
+	if repo.EnableOCI {
+		return nil, "", errors.New("OCI helm registers don't support semver ranges. Exact revision must be specified.")
 	}
 	constraints, err := semver.NewConstraint(revision)
 	if err != nil {
@@ -1326,14 +1334,28 @@ func checkoutRevision(gitClient git.Client, revision string) error {
 	if err != nil {
 		return status.Errorf(codes.Internal, "Failed to initialize git repo: %v", err)
 	}
-	err = gitClient.Fetch()
-	if err != nil {
-		return status.Errorf(codes.Internal, "Failed to fetch git repo: %v", err)
+
+	// Some git providers don't support fetching commit sha
+	if revision != "" && !git.IsCommitSHA(revision) && !git.IsTruncatedCommitSHA(revision) {
+		err = gitClient.Fetch(revision)
+		if err != nil {
+			return status.Errorf(codes.Internal, "Failed to fetch %s: %v", revision, err)
+		}
+		err = gitClient.Checkout("FETCH_HEAD")
+		if err != nil {
+			return status.Errorf(codes.Internal, "Failed to checkout FETCH_HEAD: %v", err)
+		}
+	} else {
+		err = gitClient.Fetch("")
+		if err != nil {
+			return status.Errorf(codes.Internal, "Failed to fetch %s: %v", revision, err)
+		}
+		err = gitClient.Checkout(revision)
+		if err != nil {
+			return status.Errorf(codes.Internal, "Failed to checkout %s: %v", revision, err)
+		}
 	}
-	err = gitClient.Checkout(revision)
-	if err != nil {
-		return status.Errorf(codes.Internal, "Failed to checkout %s: %v", revision, err)
-	}
+
 	return err
 }
 

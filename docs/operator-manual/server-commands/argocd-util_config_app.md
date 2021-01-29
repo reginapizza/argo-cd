@@ -2,10 +2,6 @@
 
 Generate declarative config for an application
 
-### Synopsis
-
-Generate declarative config for an application
-
 ```
 argocd-util config app APPNAME [flags]
 ```
@@ -44,6 +40,7 @@ argocd-util config app APPNAME [flags]
       --dest-namespace string                     K8s target namespace (overrides the namespace specified in the ksonnet app.yaml)
       --dest-server string                        K8s cluster URL (e.g. https://kubernetes.default.svc)
       --directory-exclude string                  Set glob expression used to exclude files from application source path
+      --directory-include string                  Set glob expression used to include files from application source path
       --directory-recurse                         Recurse directory
       --env string                                Application environment to monitor
   -f, --file string                               Filename or URL to Kubernetes manifests for the app
@@ -66,7 +63,7 @@ argocd-util config app APPNAME [flags]
       --name string                               A name for the app, ignored if a file is set (DEPRECATED)
       --nameprefix string                         Kustomize nameprefix
       --namesuffix string                         Kustomize namesuffix
-      --o string                                  Output format (yaml|json) (default "yaml")
+  -o, --output string                             Output format. One of: json|yaml (default "yaml")
   -p, --parameter stringArray                     set a parameter override (e.g. -p guestbook=image=example/guestbook:latest)
       --path string                               Path in repository to the app directory, ignored if a file is set
       --plugin-env stringArray                    Additional plugin envs
@@ -76,7 +73,7 @@ argocd-util config app APPNAME [flags]
       --revision string                           The tracking source branch, tag, commit or Helm chart version the application will sync to
       --revision-history-limit int                How many items to keep in revision history (default 10)
       --self-heal                                 Set self healing when sync is automated
-      --sync-option Prune=false                   Add or remove a sync options, e.g add Prune=false. Remove using `!` prefix, e.g. `!Prune=false`
+      --sync-option Prune=false                   Add or remove a sync option, e.g add Prune=false. Remove using `!` prefix, e.g. `!Prune=false`
       --sync-policy string                        Set the sync policy (one of: none, automated (aliases of automated: auto, automatic))
       --validate                                  Validation of repo and cluster (default true)
       --values stringArray                        Helm values file(s) to use

@@ -64,6 +64,7 @@ nav:
       - operator-manual/server-commands/argocd-server.md
       - operator-manual/server-commands/argocd-application-controller.md
       - operator-manual/server-commands/argocd-repo-server.md
+      - operator-manual/server-commands/argocd-dex.md
     - argocd-util Tools: operator-manual/server-commands/argocd-util.md
     - Upgrading:
         - operator-manual/upgrading/overview.md
@@ -103,6 +104,7 @@ nav:
     - user-guide/app_deletion.md
     - user-guide/best_practices.md
     - user-guide/status-badge.md
+    - user-guide/external-url.md
     - Command Reference: user-guide/commands/argocd.md
   - Developer Guide:
     - developer-guide/index.md

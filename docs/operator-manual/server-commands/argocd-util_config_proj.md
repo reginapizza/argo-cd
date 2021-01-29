@@ -2,10 +2,6 @@
 
 Generate declarative config for a project
 
-### Synopsis
-
-Generate declarative config for a project
-
 ```
 argocd-util config proj PROJECT [flags]
 ```
@@ -17,9 +13,9 @@ argocd-util config proj PROJECT [flags]
   -d, --dest stringArray          Permitted destination server and namespace (e.g. https://192.168.99.100:8443,default)
   -f, --file string               Filename or URL to Kubernetes manifests for the project
   -h, --help                      help for proj
-      --o string                  Output format (yaml|json) (default "yaml")
       --orphaned-resources        Enables orphaned resources monitoring
-      --orphaned-resources-warn   Specifies if applications should be a warning condition when orphaned resources detected
+      --orphaned-resources-warn   Specifies if applications should have a warning condition when orphaned resources detected
+  -o, --output string             Output format. One of: json|yaml (default "yaml")
       --signature-keys strings    GnuPG public key IDs for commit signature verification
   -s, --src stringArray           Permitted source repository URL
 ```

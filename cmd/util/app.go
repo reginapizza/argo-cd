@@ -61,6 +61,7 @@ type AppOptions struct {
 	pluginEnvs                 []string
 	Validate                   bool
 	directoryExclude           string
+	directoryInclude           string
 }
 
 func AddAppFlags(command *cobra.Command, opts *AppOptions) {
@@ -83,7 +84,7 @@ func AddAppFlags(command *cobra.Command, opts *AppOptions) {
 	command.Flags().StringArrayVar(&opts.helmSetFiles, "helm-set-file", []string{}, "Helm set values from respective files specified via the command line (can be repeated to set several values: --helm-set-file key1=path1 --helm-set-file key2=path2)")
 	command.Flags().StringVar(&opts.project, "project", "", "Application project name")
 	command.Flags().StringVar(&opts.syncPolicy, "sync-policy", "", "Set the sync policy (one of: none, automated (aliases of automated: auto, automatic))")
-	command.Flags().StringArrayVar(&opts.syncOptions, "sync-option", []string{}, "Add or remove a sync options, e.g add `Prune=false`. Remove using `!` prefix, e.g. `!Prune=false`")
+	command.Flags().StringArrayVar(&opts.syncOptions, "sync-option", []string{}, "Add or remove a sync option, e.g add `Prune=false`. Remove using `!` prefix, e.g. `!Prune=false`")
 	command.Flags().BoolVar(&opts.autoPrune, "auto-prune", false, "Set automatic pruning when sync is automated")
 	command.Flags().BoolVar(&opts.selfHeal, "self-heal", false, "Set self healing when sync is automated")
 	command.Flags().BoolVar(&opts.allowEmpty, "allow-empty", false, "Set allow zero live resources when sync is automated")
@@ -103,6 +104,7 @@ func AddAppFlags(command *cobra.Command, opts *AppOptions) {
 	command.Flags().StringArrayVar(&opts.kustomizeCommonLabels, "kustomize-common-label", []string{}, "Set common labels in Kustomize")
 	command.Flags().StringArrayVar(&opts.kustomizeCommonAnnotations, "kustomize-common-annotation", []string{}, "Set common labels in Kustomize")
 	command.Flags().StringVar(&opts.directoryExclude, "directory-exclude", "", "Set glob expression used to exclude files from application source path")
+	command.Flags().StringVar(&opts.directoryInclude, "directory-include", "", "Set glob expression used to include files from application source path")
 }
 
 func SetAppSpecOptions(flags *pflag.FlagSet, spec *argoappv1.ApplicationSpec, appOpts *AppOptions) int {
@@ -158,6 +160,12 @@ func SetAppSpecOptions(flags *pflag.FlagSet, spec *argoappv1.ApplicationSpec, ap
 				spec.Source.Directory.Exclude = appOpts.directoryExclude
 			} else {
 				spec.Source.Directory = &argoappv1.ApplicationSourceDirectory{Exclude: appOpts.directoryExclude}
+			}
+		case "directory-include":
+			if spec.Source.Directory != nil {
+				spec.Source.Directory.Include = appOpts.directoryInclude
+			} else {
+				spec.Source.Directory = &argoappv1.ApplicationSourceDirectory{Include: appOpts.directoryInclude}
 			}
 		case "config-management-plugin":
 			spec.Source.Plugin = &argoappv1.ApplicationSourcePlugin{Name: appOpts.configManagementPlugin}
@@ -463,12 +471,6 @@ func SetParameterOverrides(app *argoappv1.Application, parameters []string) {
 	}
 }
 
-func SetLabels(app *argoappv1.Application, labels []string) {
-	mapLabels, err := label.Parse(labels)
-	errors.CheckError(err)
-	app.SetLabels(mapLabels)
-}
-
 func readAppFromStdin(app *argoappv1.Application) error {
 	reader := bufio.NewReader(os.Stdin)
 	err := config.UnmarshalReader(reader, &app)
@@ -513,7 +515,7 @@ func ConstructApp(fileURL, appName string, labels, args []string, appOpts AppOpt
 		}
 		SetAppSpecOptions(flags, &app.Spec, &appOpts)
 		SetParameterOverrides(&app, appOpts.Parameters)
-		SetLabels(&app, labels)
+		mergeLabels(&app, labels)
 	} else {
 		// read arguments
 		if len(args) == 1 {
@@ -525,7 +527,7 @@ func ConstructApp(fileURL, appName string, labels, args []string, appOpts AppOpt
 		app = argoappv1.Application{
 			TypeMeta: v1.TypeMeta{
 				Kind:       application.ApplicationKind,
-				APIVersion: application.Group + "/v1aplha1",
+				APIVersion: application.Group + "/v1alpha1",
 			},
 			ObjectMeta: v1.ObjectMeta{
 				Name: appName,
@@ -533,7 +535,24 @@ func ConstructApp(fileURL, appName string, labels, args []string, appOpts AppOpt
 		}
 		SetAppSpecOptions(flags, &app.Spec, &appOpts)
 		SetParameterOverrides(&app, appOpts.Parameters)
-		SetLabels(&app, labels)
+		mergeLabels(&app, labels)
 	}
 	return &app, nil
+}
+
+func mergeLabels(app *argoappv1.Application, labels []string) {
+	mapLabels, err := label.Parse(labels)
+	errors.CheckError(err)
+
+	mergedLabels := make(map[string]string)
+
+	for name, value := range app.GetLabels() {
+		mergedLabels[name] = value
+	}
+
+	for name, value := range mapLabels {
+		mergedLabels[name] = value
+	}
+
+	app.SetLabels(mergedLabels)
 }
