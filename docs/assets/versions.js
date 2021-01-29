@@ -4,7 +4,7 @@ setTimeout(function() {
 
       const div = document.createElement('div');
       div.innerHTML = response.html;
-      document.body.appendChild(div);
+      document.querySelector(".md-header-nav > .md-header-nav__title").appendChild(div);
       const container = div.querySelector('.rst-versions');
       div.querySelector('.rst-current-version').addEventListener('click', function() {
           const classes = container.className.split(' ');
@@ -15,25 +15,26 @@ setTimeout(function() {
               classes.splice(index, 1);
           }
           container.className = classes.join(' ');
-      });
+      })
+      ;
 
-      // const div = document.createElement('div');
-      // div.innerHTML = response.html
-      // console.log(response.html)
-      // document.body.appendChild(div);
-      // var versions = JSON.parse(response.html);
+      const newDiv = document.createElement('div');
+      newDiv.innerHTML = response.html
+      console.log(response.html)
+      document.body.appendChild(newDiv);
+      var versions = JSON.parse(response.html);
 
-  //     var realVersion = versions.find(function(i) {
-  //     return i.version === "latest" ||
-  //             i.aliases.includes("latest");
-  //     }).version;
+      var realVersion = versions.find(function(i) {
+      return i.version === "latest" ||
+              i.aliases.includes("latest");
+      }).version;
 
-  //     var select = makeSelect(versions.map(function(i) {
-  //         return {text: i.title, value: i.version};
-  //       }), realVersion);
-  //       select.addEventListener("change", function(event) {
-  //         window.location.href = ABS_BASE_URL + "/../" + this.value;
-  //       });
+      var select = makeSelect(versions.map(function(i) {
+          return {text: i.title, value: i.version};
+        }), realVersion);
+        select.addEventListener("change", function(event) {
+          window.location.href = ABS_BASE_URL + "/../" + this.value;
+        });
     
         var newContainer = document.createElement("div");
         newContainer.id = "version-selector";
