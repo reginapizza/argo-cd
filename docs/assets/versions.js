@@ -17,11 +17,11 @@ setTimeout(function() {
           container.className = classes.join(' ');
       });
 
-      const div = document.createElement('div');
-      div.innerHTML = response.html
-      console.log(response.html)
-      document.body.appendChild(div);
-      var versions = JSON.parse(response.html);
+      // const div = document.createElement('div');
+      // div.innerHTML = response.html
+      // console.log(response.html)
+      // document.body.appendChild(div);
+      // var versions = JSON.parse(response.html);
 
   //     var realVersion = versions.find(function(i) {
   //     return i.version === "latest" ||
