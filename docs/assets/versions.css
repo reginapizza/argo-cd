@@ -135,14 +135,14 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
   content:"ïƒš"
 }
 .rst-versions{
-  position:fixed;
-  bottom:0;
-  left:0;
-  width:300px;
-  color:#fcfcfc;
-  background:#1f1d1d;
-  font-family:"Lato","proxima-nova","Helvetica Neue",Arial,sans-serif;
-  z-index:400
+  position: relative;
+  bottom: 0;
+  left: 0;
+  width: 300px;
+  color :#fcfcfc;
+  background :#1f1d1d;
+  font-family: "Lato","proxima-nova","Helvetica Neue",Arial,sans-serif;
+  z-index: 400
 }
 .rst-versions a{
   color:#2980B9;
@@ -215,35 +215,35 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
   color:#fcfcfc
 }
 .rst-versions.rst-badge{
-  width:auto;
+  /* width:auto;
   bottom:20px;
   right:20px;
   left:auto;
   border:none;
-  max-width:300px
+  max-width:300px */
 }
 .rst-versions.rst-badge .icon-book{
-  float:none
+  display: none;
 }
 .rst-versions.rst-badge .fa-book{
-  float:none
+  display: none;
 }
 .rst-versions.rst-badge.shift-up .rst-current-version{
-  text-align:right
+  text-align: left
 }
 .rst-versions.rst-badge.shift-up .rst-current-version .fa-book{
-  float:left
+  display: none;
 }
 .rst-versions.rst-badge.shift-up .rst-current-version .icon-book{
-  float:left
+  display: none;
 }
 .rst-versions.rst-badge .rst-current-version{
   width:auto;
   height:30px;
   line-height:30px;
-  padding:0 6px;
-  display:block;
-  text-align:center
+  padding: 0 6px;
+  display: block;
+  text-align: left;
 }
 @media screen and (max-width: 768px)
   {.rst-versions{
