@@ -145,7 +145,7 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
   left: 0;
   width: 100px !important;
   color: black; /*fix this color */
-  background: hsla(174, 100%, 29%, 1) !important;
+  background: hsla(173, 100%, 24%, 1) !important;
   font-family: inherit !important;
   font-size: .8rem !important;
   z-index: 0 !important;
@@ -159,7 +159,7 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
 }
 .rst-versions .rst-current-version{
   padding:12px;
-  background-color: hsla(174, 100%, 29%, 1) !important;
+  background-color: hsla(173, 100%, 24%, 1) !important;
   display:block;
   text-align:right;
   font-size:90%;
@@ -255,8 +255,8 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
   text-align: left !important;
   font-size: .8rem !important;
 }
-@media screen and (max-width: 768px)
-  {.rst-versions{
+@media screen and (max-width: 768px){
+  .rst-versions{
     width:85%;
     display:none
   }
