@@ -11,11 +11,12 @@
 }
 
 .rst-other-versions > dl:first-child {
-  display: block;
+  display: flex !important;
+  line-height: 0px !important;
 }
 
 .rst-versions.shift-up .rst-other-versions {
-  display: block;
+  display: flex !important;
 }
 
 .rst-versions .rst-other-versions {
@@ -146,7 +147,7 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
   color: black; /*fix this color */
   background: hsla(174, 100%, 29%, 1) !important;
   font-family: inherit !important;
-  font-size: 12px !important;
+  font-size: .8rem !important;
   z-index: 0 !important;
 }
 .rst-versions a{
@@ -218,6 +219,7 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
   display:inline-block;
   padding: 6px;
   color:#fcfcfc;
+  font-size: .6rem !important;
 }
 .rst-versions.rst-badge{
   display: block !important;
@@ -251,6 +253,7 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
   padding: 0 6px;
   display: inline-block !important;
   text-align: left !important;
+  font-size: .8rem !important;
 }
 @media screen and (max-width: 768px)
   {.rst-versions{
