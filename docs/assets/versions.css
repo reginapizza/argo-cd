@@ -12,6 +12,7 @@
 
 .rst-other-versions > dl:first-child {
   display: flex !important;
+  flex-direction: column;
   line-height: 0px !important;
 }
 
@@ -56,11 +57,15 @@ div[data-md-component=announce]>div#announce-msg>a{
   -webkit-font-smoothing:antialiased
 }
 .clearfix{
-  *zoom:1
+*zoom:1
 }
-.clearfix:before,
-.clearfix:after{display:table;content:""}
-.clearfix:after{clear:both}
+.clearfix:before,.clearfix:after{   
+  display:table;
+  content:""
+}
+.clearfix:after{
+  clear:both
+}
 
 @font-face{
   font-family:FontAwesome;
@@ -159,7 +164,7 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
 }
 .rst-versions .rst-current-version{
   padding:12px;
-  background-color: hsla(173, 100%, 24%, 1) !important;
+  background: hsla(173, 100%, 24%, 1) !important;
   display:block;
   text-align:right;
   font-size:90%;
@@ -217,9 +222,13 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
 }
 .rst-versions .rst-other-versions dd a{
   display:inline-block;
-  padding: 6px;
+  padding: 1em 0em;
   color:#fcfcfc;
   font-size: .6rem !important;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  width: 80px;
 }
 .rst-versions.rst-badge{
   display: block !important;
@@ -257,11 +266,11 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
 }
 @media screen and (max-width: 768px){
   .rst-versions{
-    width:85%;
-    display:none
+      width:85%;
+      display:none
   }
   .rst-versions.shift{
-    display:block
+      display:block
   }
 }
 
