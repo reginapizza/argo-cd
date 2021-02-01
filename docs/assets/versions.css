@@ -143,8 +143,8 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
   bottom: 0;
   left: 0;
   width: 100px !important;
-  color :#fcfcfc;
-  background: inherit !important;
+  color: black; /*fix this color */
+  background: teal !important;
   font-family: inherit !important;
   font-size: 12px !important;
   z-index: 0 !important;
@@ -216,7 +216,7 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
 }
 .rst-versions .rst-other-versions dd a{
   display:inline-block;
-  padding:6px;
+  padding: 6px;
   color:#fcfcfc;
 }
 .rst-versions.rst-badge{
@@ -227,6 +227,7 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
   left:auto;
   border:none;
   max-width: 100px !important;
+  text-align: center !important;
 }
 .rst-versions.rst-badge .icon-book{
   display: none;
@@ -248,7 +249,7 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
   height:30px;
   line-height:30px;
   padding: 0 6px;
-  display: block;
+  display: inline-block !important;
   text-align: left !important;
 }
 @media screen and (max-width: 768px)
