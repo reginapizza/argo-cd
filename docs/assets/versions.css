@@ -135,7 +135,7 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
   content:"ïƒš"
 }
 .rst-versions{
-  position: relative;
+  position: relative !important;
   bottom: 0;
   left: 0;
   width: 300px;
@@ -212,7 +212,7 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
 .rst-versions .rst-other-versions dd a{
   display:inline-block;
   padding:6px;
-  color:#fcfcfc
+  color:#fcfcfc;
 }
 .rst-versions.rst-badge{
   /* width:auto;
@@ -226,16 +226,16 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
   display: none;
 }
 .rst-versions.rst-badge .fa-book{
-  display: none;
+  display: none !important;
 }
 .rst-versions.rst-badge.shift-up .rst-current-version{
-  text-align: left
+  text-align: left !important;
 }
 .rst-versions.rst-badge.shift-up .rst-current-version .fa-book{
-  display: none;
+  display: none !important;
 }
 .rst-versions.rst-badge.shift-up .rst-current-version .icon-book{
-  display: none;
+  display: none !important;
 }
 .rst-versions.rst-badge .rst-current-version{
   width:auto;
@@ -243,7 +243,7 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
   line-height:30px;
   padding: 0 6px;
   display: block;
-  text-align: left;
+  text-align: left !important;
 }
 @media screen and (max-width: 768px)
   {.rst-versions{
