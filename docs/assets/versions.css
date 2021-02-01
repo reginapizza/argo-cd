@@ -158,12 +158,12 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
 }
 .rst-versions .rst-current-version{
   padding:12px;
-  background-color:#272525;
+  background-color: hsla(174, 100%, 29%, 1) !important;
   display:block;
   text-align:right;
   font-size:90%;
   cursor:pointer;
-  color:#27AE60;
+  color: white !important;
   *zoom:1
 }
 .rst-versions .rst-current-version:before,.rst-versions .rst-current-version:after{
