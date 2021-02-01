@@ -1,3 +1,7 @@
+.md-header-nav__title {
+  display: flex;
+}
+
 .rst-other-versions {
   text-align: right;
 }
@@ -140,7 +144,7 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
   left: 0;
   width: 100px !important;
   color :#fcfcfc;
-  background :#1f1d1d;
+  background: inherit !important;
   font-family: inherit !important;
   font-size: 12px !important;
   z-index: 0 !important;
@@ -216,6 +220,7 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
   color:#fcfcfc;
 }
 .rst-versions.rst-badge{
+  display: block !important;
   width:auto;
   bottom: 0px !important;
   right: 0px !important;
