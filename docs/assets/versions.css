@@ -215,12 +215,12 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
   color:#fcfcfc;
 }
 .rst-versions.rst-badge{
-  /* width:auto;
-  bottom:20px;
-  right:20px;
+  width:auto;
+  bottom: 0px;
+  right: 0px;
   left:auto;
   border:none;
-  max-width:300px */
+  max-width: 100px
 }
 .rst-versions.rst-badge .icon-book{
   display: none;
