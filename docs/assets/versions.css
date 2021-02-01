@@ -138,11 +138,12 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
   position: relative !important;
   bottom: 0;
   left: 0;
-  width: 300px;
+  width: 100px !important;
   color :#fcfcfc;
   background :#1f1d1d;
-  font-family: "Lato","proxima-nova","Helvetica Neue",Arial,sans-serif;
-  z-index: 400
+  font-family: inherit !important;
+  font-size: 12px !important;
+  z-index: 0 !important;
 }
 .rst-versions a{
   color:#2980B9;
