@@ -144,7 +144,7 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
   left: 0;
   width: 100px !important;
   color: black; /*fix this color */
-  background: hsla(174, 63%, 40%, 1) !important;
+  background: hsla(174, 100%, 29%, 1) !important;
   font-family: inherit !important;
   font-size: 12px !important;
   z-index: 0 !important;
