@@ -216,11 +216,11 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
 }
 .rst-versions.rst-badge{
   width:auto;
-  bottom: 0px;
-  right: 0px;
+  bottom: 0px !important;
+  right: 0px !important;
   left:auto;
   border:none;
-  max-width: 100px
+  max-width: 100px !important;
 }
 .rst-versions.rst-badge .icon-book{
   display: none;
