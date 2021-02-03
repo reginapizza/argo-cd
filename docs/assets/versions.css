@@ -2,6 +2,16 @@
   display: flex;
 }
 
+.dropdown-caret {
+  display: inline-block !important;
+  position: absolute;
+  right: 4px;
+}
+
+.fa .fa-caret-down {
+  display: none !important;
+}
+
 .rst-other-versions {
   text-align: right;
 }
@@ -181,6 +191,9 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
 .rst-versions .rst-current-version .fa{
   color:#fcfcfc
 }
+.rst-versions .rst-current-version .fa-caret-down{
+  display: none;
+}
 .rst-versions .rst-current-version .fa-book{
   float:left
 }
@@ -236,13 +249,13 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
 }
 .rst-versions.rst-badge{
   display: block !important;
-  width:auto;
+  width: 100px !important;
   bottom: 0px !important;
   right: 0px !important;
   left:auto;
   border:none;
-  max-width: 100px !important;
   text-align: center !important;
+  line-height: 0;
 }
 .rst-versions.rst-badge .icon-book{
   display: none;
@@ -260,13 +273,16 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
   display: none !important;
 }
 .rst-versions.rst-badge .rst-current-version{
-  width:auto;
-  height:30px;
-  line-height:30px;
-  padding: 0 6px;
+  width: 70px !important;
+  height: 2.4rem !important;
+  line-height:2.4rem !important;
+  padding: 0px 5px !important;
   display: inline-block !important;
+  font-size: .7rem !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
   text-align: left !important;
-  font-size: .8rem !important;
 }
 @media screen and (max-width: 768px){
   .rst-versions{
@@ -277,6 +293,7 @@ ul.fas li .fa-large:before,ul.fas li .fa-large:before{
       display:block
   }
 }
+
 
 
 
