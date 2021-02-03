@@ -43,4 +43,3 @@ window.addEventListener("DOMContentLoaded", function() {
   //   document.querySelector("div[data-md-component=announce]").innerHTML = "<div id='announce-msg'>Yay you're on the latest version of docs!</div>"
   // }
 }); 
-
