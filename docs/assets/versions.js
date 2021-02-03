@@ -36,7 +36,7 @@ setTimeout(function() {
 // VERSION WARNINGS
 window.addEventListener("DOMContentLoaded", function() {
   if ((window['READTHEDOCS_DATA']).version !== "latest") {
-    document.querySelector("div[data-md-component=announce]").innerHTML = "<div id='announce-msg'>You are viewing the docs for a previous version of Argo CD, <a href='https://argoproj.github.io/argo-cd/'>click here to go to the latest version</a></div>"
+    document.querySelector("div[data-md-component=announce]").innerHTML = "<div id='announce-msg'>You are viewing the docs for a previous version of Argo CD, <a href='https://argo-cd.readthedocs.io/en/latest/'>click here to go to the latest version.</a></div>"
   }
 
   // if ((window['READTHEDOCS_DATA']).version === "latest") {
