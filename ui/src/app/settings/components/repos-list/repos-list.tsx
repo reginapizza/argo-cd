@@ -5,10 +5,10 @@ import {Form, FormApi, Text, TextArea} from 'react-form';
 import {RouteComponentProps} from 'react-router';
 
 import {CheckboxField, ConnectionStateIcon, DataLoader, EmptyState, ErrorNotification, NumberField, Page, Repo} from '../../../shared/components';
-import {Spinner} from '../../../shared/components';
 import {AppContext} from '../../../shared/context';
 import * as models from '../../../shared/models';
 import {services} from '../../../shared/services';
+import RepoConnectionFormHeader from './repo-connection-form';
 
 require('./repos-list.scss');
 
@@ -76,7 +76,39 @@ interface NewGitHubAppRepoCredsParams {
     tlsClientCertKey: string;
 }
 
-export class ReposList extends React.Component<RouteComponentProps<any>, {connecting: boolean}> {
+export enum ConnectionMethod {
+    SSH = 'via SSH',
+    HTTPS = 'via HTTPS',
+    GITHUBAPP = 'via GitHub App'
+}
+
+function ConnectRepoFormButton(method: string, onSelection: (method: string) => void ) {
+    return (
+        <div className='white-box'>
+            <p>Choose your connection method:</p>
+            <DropDownMenu
+                anchor={() => (
+                    <p className='argo-button argo-button--base'>
+                        {method.toUpperCase()} <i className='fa fa-caret-down' />
+                    </p>
+                )}
+                items={[ConnectionMethod.SSH, ConnectionMethod.HTTPS, ConnectionMethod.GITHUBAPP].map((type: ConnectionMethod.SSH | ConnectionMethod.HTTPS | ConnectionMethod.GITHUBAPP) => ({
+                    title: type.toUpperCase(),
+                    action: () => {
+                        onSelection(type)
+                    }
+                }))}
+            />
+        </div>
+    );
+}
+export class ReposList extends React.Component<
+    RouteComponentProps<any>,
+    {
+        connecting: boolean;
+        method: string;
+    }
+> {
     public static contextTypes = {
         router: PropTypes.object,
         apis: PropTypes.object,
@@ -92,7 +124,22 @@ export class ReposList extends React.Component<RouteComponentProps<any>, {connec
 
     constructor(props: RouteComponentProps<any>) {
         super(props);
-        this.state = {connecting: false};
+        this.state = {
+            connecting: false,
+            method: ConnectionMethod.SSH
+        };
+    }
+
+    switchMethod(method: string) {
+        if(method === ConnectionMethod.SSH) {
+            return this.formApiSSH
+        }
+        if(method === ConnectionMethod.HTTPS) {
+            return this.formApiHTTPS
+        }
+        if(method === ConnectionMethod.GITHUBAPP) {
+            return this.formApiGitHubApp
+        }
     }
 
     public render() {
@@ -105,18 +152,8 @@ export class ReposList extends React.Component<RouteComponentProps<any>, {connec
                         items: [
                             {
                                 iconClassName: 'fa fa-plus',
-                                title: 'Connect Repo using SSH',
-                                action: () => (this.showConnectSSHRepo = true)
-                            },
-                            {
-                                iconClassName: 'fa fa-plus',
-                                title: 'Connect Repo using HTTPS',
-                                action: () => (this.showConnectHTTPSRepo = true)
-                            },
-                            {
-                                iconClassName: 'fa fa-plus',
-                                title: 'Connect Repo using GitHub App',
-                                action: () => (this.showConnectGitHubAppRepo = true)
+                                title: 'Connect Repo',
+                                action: () => (this.showConnectRepo = true)
                             },
                             {
                                 iconClassName: 'fa fa-redo',
@@ -185,15 +222,6 @@ export class ReposList extends React.Component<RouteComponentProps<any>, {connec
                                     <EmptyState icon='argo-icon-git'>
                                         <h4>No repositories connected</h4>
                                         <h5>Connect your repo to deploy apps.</h5>
-                                        <button className='argo-button argo-button--base' onClick={() => (this.showConnectSSHRepo = true)}>
-                                            Connect Repo using SSH
-                                        </button>{' '}
-                                        <button className='argo-button argo-button--base' onClick={() => (this.showConnectHTTPSRepo = true)}>
-                                            Connect Repo using HTTPS
-                                        </button>
-                                        <button className='argo-button argo-button--base' onClick={() => (this.showConnectGitHubAppRepo = true)}>
-                                            Connect Repo using GitHub App
-                                        </button>{' '}
                                     </EmptyState>
                                 )
                             }
@@ -237,272 +265,220 @@ export class ReposList extends React.Component<RouteComponentProps<any>, {connec
                     </div>
                 </div>
                 <SlidingPanel
-                    isShown={this.showConnectHTTPSRepo}
-                    onClose={() => (this.showConnectHTTPSRepo = false)}
+                    isShown={this.showConnectRepo}
+                    onClose={() => (this.showConnectRepo = false)}
                     header={
-                        <div>
-                            <button
-                                className='argo-button argo-button--base'
-                                onClick={() => {
-                                    this.credsTemplate = false;
-                                    this.formApiHTTPS.submitForm(null);
-                                }}>
-                                <Spinner show={this.state.connecting} style={{marginRight: '5px'}} />
-                                Connect
-                            </button>{' '}
-                            <button
-                                className='argo-button argo-button--base'
-                                onClick={() => {
-                                    this.credsTemplate = true;
-                                    this.formApiHTTPS.submitForm(null);
-                                }}>
-                                Save as credentials template
-                            </button>{' '}
-                            <button onClick={() => (this.showConnectHTTPSRepo = false)} className='argo-button argo-button--base-o'>
-                                Cancel
-                            </button>
-                        </div>
+                        <RepoConnectionFormHeader
+                            connecting={this.state.connecting}
+                            credsTemplate={this.credsTemplate}
+                            formApi={this.switchMethod(this.state.method)}
+                            showConnectRepo={this.showConnectRepo}
+                        />
                     }>
-                    <DataLoader load={() => services.projects.list('items.metadata.name').then(projects => projects.map(proj => proj.metadata.name).sort())}>
-                        {projects => (
-                            <Form
-                                onSubmit={params => this.connectHTTPSRepo(params as NewHTTPSRepoParams)}
-                                getApi={api => (this.formApiHTTPS = api)}
-                                defaultValues={{type: 'git'}}
-                                validateError={(params: NewHTTPSRepoParams) => ({
-                                    url: (!params.url && 'Repository URL is required') || (this.credsTemplate && !this.isHTTPSUrl(params.url) && 'Not a valid HTTPS URL'),
-                                    name: params.type === 'helm' && !params.name && 'Name is required',
-                                    password: !params.password && params.username && 'Password is required if username is given.',
-                                    tlsClientCertKey: !params.tlsClientCertKey && params.tlsClientCertData && 'TLS client cert key is required if TLS client cert is given.'
-                                })}>
-                                {formApi => (
-                                    <form onSubmit={formApi.submitForm} role='form' className='repos-list width-control'>
-                                        <div className='white-box'>
-                                            <p>CONNECT REPO USING HTTPS</p>
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='Type' field='type' component={FormSelect} componentProps={{options: ['git', 'helm']}} />
-                                            </div>
-                                            {formApi.getFormState().values.type === 'helm' && (
+                    {this.state.method === ConnectionMethod.SSH && (
+                        <DataLoader load={() => services.projects.list('items.metadata.name').then(projects => projects.map(proj => proj.metadata.name).sort())}>
+                            {projects => (
+                                <Form
+                                    onSubmit={params => this.connectSSHRepo(params as NewSSHRepoParams)}
+                                    getApi={api => (this.formApiSSH = api)}
+                                    defaultValues={{type: 'git'}}
+                                    validateError={(params: NewSSHRepoParams) => ({
+                                        url: !params.url && 'Repository URL is required'
+                                    })}>
+                                    {formApi => (
+                                        <form onSubmit={formApi.submitForm} role='form' className='repos-list width-control'>
+                                            {ConnectRepoFormButton(this.state.method, (method) => { this.setState({method})})}
+                                            <div className='white-box'>
+                                                <p>CONNECT REPO USING SSH</p>
                                                 <div className='argo-form-row'>
-                                                    <FormField formApi={formApi} label='Name' field='name' component={Text} />
+                                                    <FormField formApi={formApi} label='Name (mandatory for Helm)' field='name' component={Text} />
                                                 </div>
-                                            )}
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='Project' field='project' component={AutocompleteField} componentProps={{items: projects}} />
+                                                <div className='argo-form-row'>
+                                                    <FormField formApi={formApi} label='Project' field='project' component={AutocompleteField} componentProps={{items: projects}} />
+                                                </div>
+                                                <div className='argo-form-row'>
+                                                    <FormField formApi={formApi} label='Repository URL' field='url' component={Text} />
+                                                </div>
+                                                <div className='argo-form-row'>
+                                                    <FormField formApi={formApi} label='SSH private key data' field='sshPrivateKey' component={TextArea} />
+                                                </div>
+                                                <div className='argo-form-row'>
+                                                    <FormField formApi={formApi} label='Skip server verification' field='insecure' component={CheckboxField} />
+                                                    <HelpIcon title='This setting is ignored when creating as credential template.' />
+                                                </div>
+                                                <div className='argo-form-row'>
+                                                    <FormField formApi={formApi} label='Enable LFS support (Git only)' field='enableLfs' component={CheckboxField} />
+                                                    <HelpIcon title='This setting is ignored when creating as credential template.' />
+                                                </div>
+                                                <div className='argo-form-row'>
+                                                    <FormField formApi={formApi} label='Proxy (optional)' field='proxy' component={Text} />
+                                                </div>
                                             </div>
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='Repository URL' field='url' component={Text} />
-                                            </div>
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='Username (optional)' field='username' component={Text} />
-                                            </div>
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='Password (optional)' field='password' component={Text} componentProps={{type: 'password'}} />
-                                            </div>
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='TLS client certificate (optional)' field='tlsClientCertData' component={TextArea} />
-                                            </div>
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='TLS client certificate key (optional)' field='tlsClientCertKey' component={TextArea} />
-                                            </div>
-                                            {formApi.getFormState().values.type === 'git' && (
-                                                <React.Fragment>
+                                        </form>
+                                    )}
+                                </Form>
+                            )}
+                        </DataLoader>
+                    )}
+                    {this.state.method === ConnectionMethod.HTTPS && (
+                        <DataLoader load={() => services.projects.list('items.metadata.name').then(projects => projects.map(proj => proj.metadata.name).sort())}>
+                            {projects => (
+                                <Form
+                                    onSubmit={params => this.connectHTTPSRepo(params as NewHTTPSRepoParams)}
+                                    getApi={api => (this.formApiHTTPS = api)}
+                                    defaultValues={{type: 'git'}}
+                                    validateError={(params: NewHTTPSRepoParams) => ({
+                                        url: (!params.url && 'Repository URL is required') || (this.credsTemplate && !this.isHTTPSUrl(params.url) && 'Not a valid HTTPS URL'),
+                                        name: params.type === 'helm' && !params.name && 'Name is required',
+                                        password: !params.password && params.username && 'Password is required if username is given.',
+                                        tlsClientCertKey: !params.tlsClientCertKey && params.tlsClientCertData && 'TLS client cert key is required if TLS client cert is given.'
+                                    })}>
+                                    {formApi => (
+                                        <form onSubmit={formApi.submitForm} role='form' className='repos-list width-control'>
+                                            {ConnectRepoFormButton(this.state.method, (method) => { this.setState({method})})}
+                                            <div className='white-box'>
+                                                <p>CONNECT REPO USING HTTPS</p>
+                                                <div className='argo-form-row'>
+                                                    <FormField formApi={formApi} label='Type' field='type' component={FormSelect} componentProps={{options: ['git', 'helm']}} />
+                                                </div>
+                                                {formApi.getFormState().values.type === 'helm' && (
                                                     <div className='argo-form-row'>
-                                                        <FormField formApi={formApi} label='Skip server verification' field='insecure' component={CheckboxField} />
-                                                        <HelpIcon title='This setting is ignored when creating as credential template.' />
+                                                        <FormField formApi={formApi} label='Name' field='name' component={Text} />
                                                     </div>
-                                                    <div className='argo-form-row'>
-                                                        <FormField formApi={formApi} label='Enable LFS support (Git only)' field='enableLfs' component={CheckboxField} />
-                                                        <HelpIcon title='This setting is ignored when creating as credential template.' />
-                                                    </div>
-                                                </React.Fragment>
-                                            )}
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='Proxy (optional)' field='proxy' component={Text} />
+                                                )}
+                                                <div className='argo-form-row'>
+                                                    <FormField formApi={formApi} label='Project' field='project' component={AutocompleteField} componentProps={{items: projects}} />
+                                                </div>
+                                                <div className='argo-form-row'>
+                                                    <FormField formApi={formApi} label='Repository URL' field='url' component={Text} />
+                                                </div>
+                                                <div className='argo-form-row'>
+                                                    <FormField formApi={formApi} label='Username (optional)' field='username' component={Text} />
+                                                </div>
+                                                <div className='argo-form-row'>
+                                                    <FormField
+                                                        formApi={formApi}
+                                                        label='Password (optional)'
+                                                        field='password'
+                                                        component={Text}
+                                                        componentProps={{type: 'password'}}
+                                                    />
+                                                </div>
+                                                <div className='argo-form-row'>
+                                                    <FormField formApi={formApi} label='TLS client certificate (optional)' field='tlsClientCertData' component={TextArea} />
+                                                </div>
+                                                <div className='argo-form-row'>
+                                                    <FormField formApi={formApi} label='TLS client certificate key (optional)' field='tlsClientCertKey' component={TextArea} />
+                                                </div>
+                                                {formApi.getFormState().values.type === 'git' && (
+                                                    <React.Fragment>
+                                                        <div className='argo-form-row'>
+                                                            <FormField formApi={formApi} label='Skip server verification' field='insecure' component={CheckboxField} />
+                                                            <HelpIcon title='This setting is ignored when creating as credential template.' />
+                                                        </div>
+                                                        <div className='argo-form-row'>
+                                                            <FormField formApi={formApi} label='Enable LFS support (Git only)' field='enableLfs' component={CheckboxField} />
+                                                            <HelpIcon title='This setting is ignored when creating as credential template.' />
+                                                        </div>
+                                                    </React.Fragment>
+                                                )}
+                                                <div className='argo-form-row'>
+                                                    <FormField formApi={formApi} label='Proxy (optional)' field='proxy' component={Text} />
+                                                </div>
                                             </div>
-                                        </div>
-                                    </form>
-                                )}
-                            </Form>
-                        )}
-                    </DataLoader>
-                </SlidingPanel>
-                <SlidingPanel
-                    isShown={this.showConnectSSHRepo}
-                    onClose={() => (this.showConnectSSHRepo = false)}
-                    header={
-                        <div>
-                            <button
-                                className='argo-button argo-button--base'
-                                onClick={() => {
-                                    this.credsTemplate = false;
-                                    this.formApiSSH.submitForm(null);
-                                }}>
-                                <Spinner show={this.state.connecting} style={{marginRight: '5px'}} />
-                                Connect
-                            </button>{' '}
-                            <button
-                                className='argo-button argo-button--base'
-                                onClick={() => {
-                                    this.credsTemplate = true;
-                                    this.formApiSSH.submitForm(null);
-                                }}>
-                                Save as credentials template
-                            </button>{' '}
-                            <button onClick={() => (this.showConnectSSHRepo = false)} className='argo-button argo-button--base-o'>
-                                Cancel
-                            </button>
-                        </div>
-                    }>
-                    <DataLoader load={() => services.projects.list('items.metadata.name').then(projects => projects.map(proj => proj.metadata.name).sort())}>
-                        {projects => (
-                            <Form
-                                onSubmit={params => this.connectSSHRepo(params as NewSSHRepoParams)}
-                                getApi={api => (this.formApiSSH = api)}
-                                defaultValues={{type: 'git'}}
-                                validateError={(params: NewSSHRepoParams) => ({
-                                    url: !params.url && 'Repository URL is required'
-                                })}>
-                                {formApi => (
-                                    <form onSubmit={formApi.submitForm} role='form' className='repos-list width-control'>
-                                        <div className='white-box'>
-                                            <p>CONNECT REPO USING SSH</p>
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='Name (mandatory for Helm)' field='name' component={Text} />
+                                        </form>
+                                    )}
+                                </Form>
+                            )}
+                        </DataLoader>
+                    )}
+                    {this.state.method === ConnectionMethod.GITHUBAPP && (
+                        <DataLoader load={() => services.projects.list('items.metadata.name').then(projects => projects.map(proj => proj.metadata.name).sort())}>
+                            {projects => (
+                                <Form
+                                    onSubmit={params => this.connectGitHubAppRepo(params as NewGitHubAppRepoParams)}
+                                    getApi={api => (this.formApiGitHubApp = api)}
+                                    defaultValues={{type: 'git', ghType: 'GitHub'}}
+                                    validateError={(params: NewGitHubAppRepoParams) => ({
+                                        url: (!params.url && 'Repository URL is required') || (this.credsTemplate && !this.isHTTPSUrl(params.url) && 'Not a valid HTTPS URL'),
+                                        githubAppId: !params.githubAppId && 'GitHub App ID is required',
+                                        githubAppInstallationId: !params.githubAppInstallationId && 'GitHub App installation ID is required',
+                                        githubAppPrivateKey: !params.githubAppPrivateKey && 'GitHub App private Key is required'
+                                    })}>
+                                    {formApi => (
+                                        <form onSubmit={formApi.submitForm} role='form' className='repos-list width-control'>
+                                            {ConnectRepoFormButton(this.state.method, (method) => { this.setState({method})})}
+                                            <div className='white-box'>
+                                                <p>CONNECT REPO USING GITHUB APP</p>
+                                                <div className='argo-form-row'>
+                                                    <FormField
+                                                        formApi={formApi}
+                                                        label='Type'
+                                                        field='ghType'
+                                                        component={FormSelect}
+                                                        componentProps={{options: ['GitHub', 'GitHub Enterprise']}}
+                                                    />
+                                                </div>
+                                                {formApi.getFormState().values.ghType === 'GitHub Enterprise' && (
+                                                    <React.Fragment>
+                                                        <div className='argo-form-row'>
+                                                            <FormField
+                                                                formApi={formApi}
+                                                                label='GitHub Enterprise Base URL (e.g. https://ghe.example.com/api/v3)'
+                                                                field='githubAppEnterpriseBaseURL'
+                                                                component={Text}
+                                                            />
+                                                        </div>
+                                                    </React.Fragment>
+                                                )}
+                                                <div className='argo-form-row'>
+                                                    <FormField formApi={formApi} label='Project' field='project' component={AutocompleteField} componentProps={{items: projects}} />
+                                                </div>
+                                                <div className='argo-form-row'>
+                                                    <FormField formApi={formApi} label='Repository URL' field='url' component={Text} />
+                                                </div>
+                                                <div className='argo-form-row'>
+                                                    <FormField formApi={formApi} label='GitHub App ID' field='githubAppId' component={NumberField} />
+                                                </div>
+                                                <div className='argo-form-row'>
+                                                    <FormField formApi={formApi} label='GitHub App Installation ID' field='githubAppInstallationId' component={NumberField} />
+                                                </div>
+                                                <div className='argo-form-row'>
+                                                    <FormField formApi={formApi} label='GitHub App private key' field='githubAppPrivateKey' component={TextArea} />
+                                                </div>
+                                                <div className='argo-form-row'>
+                                                    <FormField formApi={formApi} label='Skip server verification' field='insecure' component={CheckboxField} />
+                                                    <HelpIcon title='This setting is ignored when creating as credential template.' />
+                                                </div>
+                                                <div className='argo-form-row'>
+                                                    <FormField formApi={formApi} label='Enable LFS support (Git only)' field='enableLfs' component={CheckboxField} />
+                                                    <HelpIcon title='This setting is ignored when creating as credential template.' />
+                                                </div>
+                                                {formApi.getFormState().values.ghType === 'GitHub Enterprise' && (
+                                                    <React.Fragment>
+                                                        <div className='argo-form-row'>
+                                                            <FormField formApi={formApi} label='TLS client certificate (optional)' field='tlsClientCertData' component={TextArea} />
+                                                        </div>
+                                                        <div className='argo-form-row'>
+                                                            <FormField
+                                                                formApi={formApi}
+                                                                label='TLS client certificate key (optional)'
+                                                                field='tlsClientCertKey'
+                                                                component={TextArea}
+                                                            />
+                                                        </div>
+                                                    </React.Fragment>
+                                                )}
+                                                <div className='argo-form-row'>
+                                                    <FormField formApi={formApi} label='Proxy (optional)' field='proxy' component={Text} />
+                                                </div>
                                             </div>
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='Project' field='project' component={AutocompleteField} componentProps={{items: projects}} />
-                                            </div>
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='Repository URL' field='url' component={Text} />
-                                            </div>
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='SSH private key data' field='sshPrivateKey' component={TextArea} />
-                                            </div>
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='Skip server verification' field='insecure' component={CheckboxField} />
-                                                <HelpIcon title='This setting is ignored when creating as credential template.' />
-                                            </div>
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='Enable LFS support (Git only)' field='enableLfs' component={CheckboxField} />
-                                                <HelpIcon title='This setting is ignored when creating as credential template.' />
-                                            </div>
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='Proxy (optional)' field='proxy' component={Text} />
-                                            </div>
-                                        </div>
-                                    </form>
-                                )}
-                            </Form>
-                        )}
-                    </DataLoader>
-                </SlidingPanel>
-                <SlidingPanel
-                    isShown={this.showConnectGitHubAppRepo}
-                    onClose={() => (this.showConnectGitHubAppRepo = false)}
-                    header={
-                        <div>
-                            <button
-                                className='argo-button argo-button--base'
-                                onClick={() => {
-                                    this.credsTemplate = false;
-                                    this.formApiGitHubApp.submitForm(null);
-                                }}>
-                                <Spinner show={this.state.connecting} style={{marginRight: '5px'}} />
-                                Connect
-                            </button>{' '}
-                            <button
-                                className='argo-button argo-button--base'
-                                onClick={() => {
-                                    this.credsTemplate = true;
-                                    this.formApiGitHubApp.submitForm(null);
-                                }}>
-                                Save as credentials template
-                            </button>{' '}
-                            <button onClick={() => (this.showConnectGitHubAppRepo = false)} className='argo-button argo-button--base-o'>
-                                Cancel
-                            </button>
-                        </div>
-                    }>
-                    <DataLoader load={() => services.projects.list('items.metadata.name').then(projects => projects.map(proj => proj.metadata.name).sort())}>
-                        {projects => (
-                            <Form
-                                onSubmit={params => this.connectGitHubAppRepo(params as NewGitHubAppRepoParams)}
-                                getApi={api => (this.formApiGitHubApp = api)}
-                                defaultValues={{type: 'git', ghType: 'GitHub'}}
-                                validateError={(params: NewGitHubAppRepoParams) => ({
-                                    url: (!params.url && 'Repository URL is required') || (this.credsTemplate && !this.isHTTPSUrl(params.url) && 'Not a valid HTTPS URL'),
-                                    githubAppId: !params.githubAppId && 'GitHub App ID is required',
-                                    githubAppInstallationId: !params.githubAppInstallationId && 'GitHub App installation ID is required',
-                                    githubAppPrivateKey: !params.githubAppPrivateKey && 'GitHub App private Key is required'
-                                })}>
-                                {formApi => (
-                                    <form onSubmit={formApi.submitForm} role='form' className='repos-list width-control'>
-                                        <div className='white-box'>
-                                            <p>CONNECT REPO USING GITHUB APP</p>
-                                            <div className='argo-form-row'>
-                                                <FormField
-                                                    formApi={formApi}
-                                                    label='Type'
-                                                    field='ghType'
-                                                    component={FormSelect}
-                                                    componentProps={{options: ['GitHub', 'GitHub Enterprise']}}
-                                                />
-                                            </div>
-                                            {formApi.getFormState().values.ghType === 'GitHub Enterprise' && (
-                                                <React.Fragment>
-                                                    <div className='argo-form-row'>
-                                                        <FormField
-                                                            formApi={formApi}
-                                                            label='GitHub Enterprise Base URL (e.g. https://ghe.example.com/api/v3)'
-                                                            field='githubAppEnterpriseBaseURL'
-                                                            component={Text}
-                                                        />
-                                                    </div>
-                                                </React.Fragment>
-                                            )}
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='Project' field='project' component={AutocompleteField} componentProps={{items: projects}} />
-                                            </div>
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='Repository URL' field='url' component={Text} />
-                                            </div>
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='GitHub App ID' field='githubAppId' component={NumberField} />
-                                            </div>
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='GitHub App Installation ID' field='githubAppInstallationId' component={NumberField} />
-                                            </div>
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='GitHub App private key' field='githubAppPrivateKey' component={TextArea} />
-                                            </div>
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='Skip server verification' field='insecure' component={CheckboxField} />
-                                                <HelpIcon title='This setting is ignored when creating as credential template.' />
-                                            </div>
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='Enable LFS support (Git only)' field='enableLfs' component={CheckboxField} />
-                                                <HelpIcon title='This setting is ignored when creating as credential template.' />
-                                            </div>
-                                            {formApi.getFormState().values.ghType === 'GitHub Enterprise' && (
-                                                <React.Fragment>
-                                                    <div className='argo-form-row'>
-                                                        <FormField formApi={formApi} label='TLS client certificate (optional)' field='tlsClientCertData' component={TextArea} />
-                                                    </div>
-                                                    <div className='argo-form-row'>
-                                                        <FormField formApi={formApi} label='TLS client certificate key (optional)' field='tlsClientCertKey' component={TextArea} />
-                                                    </div>
-                                                </React.Fragment>
-                                            )}
-                                            <div className='argo-form-row'>
-                                                <FormField formApi={formApi} label='Proxy (optional)' field='proxy' component={Text} />
-                                            </div>
-                                        </div>
-                                    </form>
-                                )}
-                            </Form>
-                        )}
-                    </DataLoader>
+                                        </form>
+                                    )}
+                                </Form>
+                            )}
+                        </DataLoader>
+                    )}
                 </SlidingPanel>
             </Page>
         );
@@ -535,22 +511,19 @@ export class ReposList extends React.Component<RouteComponentProps<any>, {connec
         }
     }
 
-    // Empty all fields in SSH repository form
-    private clearConnectSSHForm() {
+    // Empty all fields in connect repository form
+    private clearConnectRepoForm() {
         this.credsTemplate = false;
-        this.formApiSSH.resetAll();
-    }
-
-    // Empty all fields in HTTPS repository form
-    private clearConnectHTTPSForm() {
-        this.credsTemplate = false;
-        this.formApiHTTPS.resetAll();
-    }
-
-    // Empty all fields in SSH repository form
-    private clearConnectGitHubAppForm() {
-        this.credsTemplate = false;
-        this.formApiGitHubApp.resetAll();
+        switch(this.state.method) {
+            case ConnectionMethod.SSH.toString():
+                return this.formApiSSH.resetAll();
+            case ConnectionMethod.HTTPS.toString():
+                return this.formApiHTTPS.resetAll();
+            case ConnectionMethod.GITHUBAPP.toString():
+               return this.formApiGitHubApp.resetAll();
+            default:
+            return null
+        }
     }
 
     // Connect a new repository or create a repository credentials for SSH repositories
@@ -562,7 +535,7 @@ export class ReposList extends React.Component<RouteComponentProps<any>, {connec
             try {
                 await services.repos.createSSH(params);
                 this.repoLoader.reload();
-                this.showConnectSSHRepo = false;
+                this.showConnectRepo = false;
             } catch (e) {
                 this.appContext.apis.notifications.show({
                     content: <ErrorNotification title='Unable to connect SSH repository' e={e} />,
@@ -589,7 +562,7 @@ export class ReposList extends React.Component<RouteComponentProps<any>, {connec
             try {
                 await services.repos.createHTTPS(params);
                 this.repoLoader.reload();
-                this.showConnectHTTPSRepo = false;
+                this.showConnectRepo = false;
             } catch (e) {
                 this.appContext.apis.notifications.show({
                     content: <ErrorNotification title='Unable to connect HTTPS repository' e={e} />,
@@ -618,10 +591,10 @@ export class ReposList extends React.Component<RouteComponentProps<any>, {connec
             try {
                 await services.repos.createGitHubApp(params);
                 this.repoLoader.reload();
-                this.showConnectGitHubAppRepo = false;
+                this.showConnectRepo = false;
             } catch (e) {
                 this.appContext.apis.notifications.show({
-                    content: <ErrorNotification title='Unable to connect GitHub app repository' e={e} />,
+                    content: <ErrorNotification title='Unable to connect GitHub App repository' e={e} />,
                     type: NotificationType.Error
                 });
             } finally {
@@ -634,7 +607,7 @@ export class ReposList extends React.Component<RouteComponentProps<any>, {connec
         try {
             await services.repocreds.createHTTPS(params);
             this.credsLoader.reload();
-            this.showConnectHTTPSRepo = false;
+            this.showConnectRepo = false;
         } catch (e) {
             this.appContext.apis.notifications.show({
                 content: <ErrorNotification title='Unable to create HTTPS credentials' e={e} />,
@@ -647,7 +620,7 @@ export class ReposList extends React.Component<RouteComponentProps<any>, {connec
         try {
             await services.repocreds.createSSH(params);
             this.credsLoader.reload();
-            this.showConnectSSHRepo = false;
+            this.showConnectRepo = false;
         } catch (e) {
             this.appContext.apis.notifications.show({
                 content: <ErrorNotification title='Unable to create SSH credentials' e={e} />,
@@ -660,7 +633,7 @@ export class ReposList extends React.Component<RouteComponentProps<any>, {connec
         try {
             await services.repocreds.createGitHubApp(params);
             this.credsLoader.reload();
-            this.showConnectGitHubAppRepo = false;
+            this.showConnectRepo = false;
         } catch (e) {
             this.appContext.apis.notifications.show({
                 content: <ErrorNotification title='Unable to create GitHub App credentials' e={e} />,
@@ -687,34 +660,14 @@ export class ReposList extends React.Component<RouteComponentProps<any>, {connec
         }
     }
 
-    // Whether to show the HTTPS repository connection dialogue on the page
-    private get showConnectHTTPSRepo() {
-        return new URLSearchParams(this.props.location.search).get('addHTTPSRepo') === 'true';
+    // Whether to show the new repository connection dialogue on the page
+    private get showConnectRepo() {
+        return new URLSearchParams(this.props.location.search).get('addRepo') === 'true';
     }
 
-    private set showConnectHTTPSRepo(val: boolean) {
-        this.clearConnectHTTPSForm();
-        this.appContext.router.history.push(`${this.props.match.url}?addHTTPSRepo=${val}`);
-    }
-
-    // Whether to show the SSH repository connection dialogue on the page
-    private get showConnectSSHRepo() {
-        return new URLSearchParams(this.props.location.search).get('addSSHRepo') === 'true';
-    }
-
-    private set showConnectSSHRepo(val: boolean) {
-        this.clearConnectSSHForm();
-        this.appContext.router.history.push(`${this.props.match.url}?addSSHRepo=${val}`);
-    }
-
-    // Whether to show the GitHub App repository connection dialogue on the page
-    private get showConnectGitHubAppRepo() {
-        return new URLSearchParams(this.props.location.search).get('addGitHubAppRepo') === 'true';
-    }
-
-    private set showConnectGitHubAppRepo(val: boolean) {
-        this.clearConnectGitHubAppForm();
-        this.appContext.router.history.push(`${this.props.match.url}?addGitHubAppRepo=${val}`);
+    private set showConnectRepo(val: boolean) {
+        this.clearConnectRepoForm();
+        this.appContext.router.history.push(`${this.props.match.url}?addRepo=${val}`);
     }
 
     private get appContext(): AppContext {
