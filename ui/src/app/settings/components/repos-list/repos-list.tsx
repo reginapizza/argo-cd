@@ -75,7 +75,7 @@ interface NewGitHubAppRepoCredsParams {
     tlsClientCertKey: string;
 }
 
-export enum ConnectionMethod {
+enum ConnectionMethod {
     SSH = 'via SSH',
     HTTPS = 'via HTTPS',
     GITHUBAPP = 'via GitHub App'
